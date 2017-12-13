@@ -1,0 +1,30 @@
+<!DOCTYPE html><html>
+<head><title>Coin Arbitrage</title>
+	<meta charset="utf-8">
+	<meta name="keywords" content="Crypto ARbitrage">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://d3dy5gmtp8yhk7.cloudfront.net/2.1/pusher.min.js"></script>
+	<script type='text/javascript' src="libs/sha256.js"></script>
+	<script type='text/javascript' src="js/bitstampAuth.js"></script>
+	<script type='text/javascript' src="js/exchanges.js"></script>
+	<script type='text/javascript' src="js/arbitrageWorker.js"></script>
+	<script type='text/javascript' src="js/main.js"></script>
+	<style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0px;
+      border: 0;
+      overflow: hidden; /*  Disable scrollbars */
+      display: block;  /* No floating content on sides */
+    }
+    </style>
+</head>
+<body onload="init();">
+	<button id="btnToggle" onClick="arbitrageActive= !arbitrageActive;">Toggle Worker</button>
+	<div id="arbitrageContainer">
+		
+	</div>
+
+</body>
+</html>
