@@ -25,8 +25,8 @@ function labelFromPairs(pairs) {
 
 	var ex= new Exchanges.BitstampExchange();
 var workers= [];
-var maxAmount= 20;
-var minAmount= 15;
+var maxAmount= 90;
+var minAmount= 40;
 var arbitrageActive= false;
 
 function init() {
@@ -37,6 +37,7 @@ function init() {
 
 
 //bitstamp
+var ex= new Exchanges.BitstampExchange();
 	var bitstampContainer= $("<div id='bitstamp'></div>");
 	container.append(bitstampContainer);
 
@@ -50,7 +51,7 @@ function init() {
 	var element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),new Exchanges.BitstampExchange(),pairsWithD,maxAmount,minAmount,element);
+	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
 
 	pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
@@ -61,7 +62,7 @@ function init() {
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),new Exchanges.BitstampExchange(),pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
 
 pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
@@ -72,7 +73,7 @@ pairsWithD= [];
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),new Exchanges.BitstampExchange(),pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
 
 pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
@@ -83,6 +84,6 @@ pairsWithD= [];
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),new Exchanges.BitstampExchange(),pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
 
 }

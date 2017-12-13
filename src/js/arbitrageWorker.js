@@ -6,7 +6,7 @@
     function ArbitrageWorker(label,exchange,listOfPairsWithDirections,maxAmount,minAmount,statusDiv) {
         this.pairsWithDirections= listOfPairsWithDirections;
         this.exchange= exchange;
-        this.minArbitragePercent= (listOfPairsWithDirections.length+1)*exchange.getTxFeePerc();
+        this.minArbitragePercent= exchange.getTxFeePerc()*(listOfPairsWithDirections.length+1);
         this.mapOfPairs= {};
         this.orderBooks= {};
         this.statusDiv= statusDiv;
@@ -50,19 +50,15 @@
                     amount /= quote;
                 } 
                 //floor
-                var exp= Math.pow(10,Math.floor(Math.log10(amount*0.001)));
+                var exp= Math.pow(10,Math.floor(Math.log10(amount*0.001)))*2;
                 amount= Math.floor(amount/exp)*exp;
-                exp= Math.pow(10,Math.floor(Math.log10(quote*0.001)));
+                exp= Math.pow(10,Math.floor(Math.log10(quote*0.0001)))*5;
                 var limit= quote;
-                if(execType == 0) {
-                    limit= Math.ceil(quote/exp)*exp;
-                } else {
-                    limit= Math.floor(quote/exp)*exp;
-                }
                 executions.push(new Exchanges.WantedExecution(pwd.pair,execType,amount,limit));
                 if(execType == 1) {
                     amount *= quote;
-                }               
+                }
+                amount *= 1-self.exchange.getTxFeePerc()/100;               
             }
             return executions;
         }

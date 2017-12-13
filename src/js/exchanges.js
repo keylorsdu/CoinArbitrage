@@ -52,8 +52,13 @@ var Exchanges= {};
         };
 
         this.sendOrder= function(type,pair,amount,limit,callbackIfDone) { 
+            console.log("orderInput "+type+" "+pair+" "+amount+" @ "+limit);
             amount= Number(amount.toFixed(8)); //restrict to 8 decimals
-            limit= Number(limit.toFixed(5)); //restrict to 5 decimals
+            if(pair.indexOf("eur") != -1) {
+                limit= Number(limit.toFixed(5)); //restrict to 5 decimals
+            } else {
+                limit= Number(limit.toFixed(8)); //restrict to 5 decimals
+            }
             if(!arbitrageActive) {
                 console.log("would "+type+" "+pair+" "+amount+" @ "+limit);
                 callbackIfDone();
@@ -66,7 +71,7 @@ var Exchanges= {};
                     alert("error in order!");
                     arbitrageActive= false;
                 } else {
-                    self.checkConfirmation(5,data.id,pair,callbackIfDone);
+                    self.checkConfirmation(7,data.id,pair,callbackIfDone);
                 }
               },
             {amount:amount, price:limit});
@@ -78,7 +83,7 @@ var Exchanges= {};
                     if(data.status != "Finished") {
                         if(retries > 0) {
                            console.warn(Date.now() + " order "+orderId +" in "+pair+" is still pending! retry");
-                           setTimeout(function(){self.checkConfirmation(retries-1,orderId,pair,callbackIfDone)},1000);
+                           setTimeout(function(){self.checkConfirmation(retries-1,orderId,pair,callbackIfDone)},200*(8-retries)*(8-retries));
                         } else {
                             console.error(Date.now() + " order "+orderId+" in "+pair+" is still pending!");
                             alert("order in "+pair+" is still pending!");
@@ -110,7 +115,14 @@ var Exchanges= {};
             }
         };
 
+        this.listenersForPair= {};
         this.registerForPair= function(pair,callback) {
+            if(self.listenersForPair[pair] !== undefined) {
+                self.listenersForPair[pair].push(callback);
+                return;
+            } 
+            self.listenersForPair[pair]= [];
+            self.listenersForPair[pair].push(callback);
             var addOn= "";
             if(pair != "btcusd") {
                 addOn= "_"+pair;
@@ -125,7 +137,9 @@ var Exchanges= {};
                 data.asks.forEach(function(ask) {
                     asks[asks.length]= new Level2Entry(ask[0],ask[1]);
                 });
-                callback.setOrderBook(pair,bids,asks);
+                self.listenersForPair[pair].forEach(function(callback) {
+                    callback.setOrderBook(pair,bids,asks);
+                });
             });
         }
 
