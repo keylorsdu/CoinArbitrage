@@ -3,7 +3,7 @@
 
 // Exchange registers for the givenPairs and reports bids and asks to the callback. 
 //also provides methodes to buy/sell
-    function ArbitrageWorker(label,exchange,listOfPairsWithDirections,maxAmount,minAmount,statusDiv) {
+    function ArbitrageWorker(label,exchange,listOfPairsWithDirections,maxAmount,minAmount,statusDiv,logDiv) {
         this.pairsWithDirections= listOfPairsWithDirections;
         this.exchange= exchange;
         this.minArbitragePercent= exchange.getTxFeePerc()*(listOfPairsWithDirections.length+1);
@@ -46,25 +46,28 @@
                 } else {
                     quote= self.orderBooks[pwd.pair].bids[0].price;
                 }
-                if(execType == 0) {
-                    amount /= quote;
-                } 
                 //floor
-                var exp= Math.pow(10,Math.floor(Math.log10(amount*0.001)))*2;
-                amount= Math.floor(amount/exp)*exp;
-                exp= Math.pow(10,Math.floor(Math.log10(quote*0.0001)))*5;
+                exp= Math.pow(10,Math.floor(Math.log10(quote*0.0001)));
                 var limit= quote;
+                if(execType == 0) {
+                    limit= Math.ceil(quote/exp)*exp;
+                } else {
+                    limit= Math.floor(quote/exp)*exp;
+                }
+
+                if(execType == 0) {
+                    amount /= limit;
+                } 
                 executions.push(new Exchanges.WantedExecution(pwd.pair,execType,amount,limit));
                 if(execType == 1) {
-                    amount *= quote;
+                    amount *= limit;
                 }
-                amount *= 1-self.exchange.getTxFeePerc()/100;               
+                amount *= 1-self.exchange.getTxFeePerc()/200;               
             }
             return executions;
         }
 
         this.checkForArbitrage= function() {
-            
             var gotDirection= 0;
             var value;
 
@@ -136,15 +139,19 @@
                 if(Date.now() < self.cooldown) {
                     console.log("cooldown");
                     return;
-                }   
+                }
                 self.cooldown= Date.now()+5000;
                 console.log(label+" got arbitrage backwards: "+backward+" with "+amountFacBack);
                 if(amountFacBack < self.minAmount) {
                     console.log("not enough volume");
                     return;
-                }
+                }   
                 executions= self.getExecutions(Math.min(amountFacBack,self.maxAmount),-1);
-                exchange.executeOrderChain(executions);
+                exchange.executeOrderChain(executions,function(success,message) { 
+                    //add log
+                    var element= $("<div>"+label+":"+(success?"SUCCESS":"PROBLEM")+" doing train: "+message+"</div>");
+                    logDiv.append(element);    
+                });
                 gotOne= " got arbitrage: backward";
             }   
             if(forward > 1+self.minArbitragePercent/100) {
@@ -157,9 +164,13 @@
                 if(amountFacForward < self.minAmount) {
                     console.log("not enough volume");
                     return;
-                }
+                } 
                 executions= self.getExecutions(Math.min(amountFacForward,self.maxAmount),1);
-                exchange.executeOrderChain(executions);
+                exchange.executeOrderChain(executions, function(success,message) { 
+                    //add log
+                    var element= $("<div>"+label+":"+(success?"SUCCESS":"PROBLEM")+" doing train: "+message+"</div>");
+                    logDiv.append(element);    
+                });
                 gotOne= " got arbitrage: forward";               
             }            
 

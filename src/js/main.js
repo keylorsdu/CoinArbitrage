@@ -34,7 +34,7 @@ function init() {
 	var pWD= ArbitrageWorker.PairWithDirection;
 
 	var container= $("#arbitrageContainer");
-
+	var logContainer= $("#logs");
 
 //bitstamp
 var ex= new Exchanges.BitstampExchange();
@@ -51,7 +51,7 @@ var ex= new Exchanges.BitstampExchange();
 	var element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
+	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
 	pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
@@ -62,9 +62,9 @@ var ex= new Exchanges.BitstampExchange();
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
-pairsWithD= [];
+	pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
 	pairsWithD.push(new pWD("ltcbtc",0));
 	pairsWithD.push(new pWD("ltceur",1));
@@ -73,9 +73,9 @@ pairsWithD= [];
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
-pairsWithD= [];
+	pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
 	pairsWithD.push(new pWD("bchbtc",0));
 	pairsWithD.push(new pWD("bcheur",1));
@@ -84,6 +84,6 @@ pairsWithD= [];
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element);
+	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
 }
