@@ -4,6 +4,16 @@ if (!Array.prototype.last){
     };
 };
 
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
 function labelFromPairs(pairs) {
 	var label= "";
 	pairs.forEach(function(p) {
@@ -26,25 +36,15 @@ function labelFromPairs(pairs) {
 	var ex= new Exchanges.BitstampExchange();
 var workers= [];
 var maxAmount= 90;
-var minAmount= 40;
+var minAmount= 70;
 var arbitrageActive= false;
 
-function init() {
-
+function addThreeSomeBitstamp(middle,ex,bitstampContainer,logContainer) {
 	var pWD= ArbitrageWorker.PairWithDirection;
-
-	var container= $("#arbitrageContainer");
-	var logContainer= $("#logs");
-
-//bitstamp
-var ex= new Exchanges.BitstampExchange();
-	var bitstampContainer= $("<div id='bitstamp'></div>");
-	container.append(bitstampContainer);
-
 	var pairsWithD= [];
 	pairsWithD.push(new pWD("btceur",0));
-	pairsWithD.push(new pWD("ethbtc",0));
-	pairsWithD.push(new pWD("etheur",1));
+	pairsWithD.push(new pWD(middle+"btc",0));
+	pairsWithD.push(new pWD(middle+"eur",1));
 
 
 	var workerContainer= $("<div>"+labelFromPairs(pairsWithD)+"</div>");
@@ -53,37 +53,56 @@ var ex= new Exchanges.BitstampExchange();
 	workerContainer.append(element);
 	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
+
 	pairsWithD= [];
-	pairsWithD.push(new pWD("btceur",0));
-	pairsWithD.push(new pWD("xrpbtc",0));
-	pairsWithD.push(new pWD("xrpeur",1));
+	pairsWithD.push(new pWD("eurusd",1));
+	pairsWithD.push(new pWD(middle+"usd",0));
+	pairsWithD.push(new pWD(middle+"eur",1));
+
 
 	workerContainer= $("<div>"+labelFromPairs(pairsWithD)+"</div>");
 	element= $("<div id='updates'></div>");
 	bitstampContainer.append(workerContainer)
 	workerContainer.append(element);
 	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
+}
 
-	pairsWithD= [];
-	pairsWithD.push(new pWD("btceur",0));
-	pairsWithD.push(new pWD("ltcbtc",0));
-	pairsWithD.push(new pWD("ltceur",1));
+function hideExchangeChoice() {
+	$("#exchangeChoice").hide();
+}
 
-	workerContainer= $("<div>"+labelFromPairs(pairsWithD)+"</div>");
-	element= $("<div id='updates'></div>");
-	bitstampContainer.append(workerContainer)
+function init() {
+	var exchange= getParameterByName("exchange");
+	if(exchange == "bitstamp") {
+		initBitstamp();
+		arbitrageActive= getParameterByName("activate") == "true";
+	}
+}
+
+function initBitstamp() {
+	hideExchangeChoice();
+
+	var container= $("#arbitrageContainer");
+	var logContainer= $("#logs");
+
+	var ex= new Exchanges.BitstampExchange();
+
+	addThreeSomeBitstamp("eth",ex,container,logContainer);
+	addThreeSomeBitstamp("xrp",ex,container,logContainer);
+	addThreeSomeBitstamp("ltc",ex,container,logContainer);
+	addThreeSomeBitstamp("bch",ex,container,logContainer);
+
+	var pWD= ArbitrageWorker.PairWithDirection;
+	var pairsWithD= [];
+	pairsWithD.push(new pWD("eurusd",1));
+	pairsWithD.push(new pWD("btcusd",0));
+	pairsWithD.push(new pWD("btceur",1));
+
+
+	var workerContainer= $("<div>"+labelFromPairs(pairsWithD)+"</div>");
+	var element= $("<div id='updates'></div>");
+	container.append(workerContainer)
 	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
-
-	pairsWithD= [];
-	pairsWithD.push(new pWD("btceur",0));
-	pairsWithD.push(new pWD("bchbtc",0));
-	pairsWithD.push(new pWD("bcheur",1));
-
-	workerContainer= $("<div>"+labelFromPairs(pairsWithD)+"</div>");
-	element= $("<div id='updates'></div>");
-	bitstampContainer.append(workerContainer)
-	workerContainer.append(element);
-	worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
+	var worker= new ArbitrageWorker(labelFromPairs(pairsWithD),ex,pairsWithD,maxAmount,minAmount,element,logContainer);
 
 }

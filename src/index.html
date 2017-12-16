@@ -13,16 +13,16 @@
     html, body {
       width: 100%;
       height: 100%;
-      margin: 0px;
-      border: 0;
-      overflow: hidden; /*  Disable scrollbars */
-      display: block;  /* No floating content on sides */
     }
     </style>
 </head>
 <body onload="init();">
-	<h3>Active Arbitrage Workers</h3>
 	<button id="btnToggle" onClick="arbitrageActive= !arbitrageActive;">Toggle Worker</button>
+	<div id="exchangeChoice">
+		<h3>First choose an exchange</h3>
+		<button onClick="initBitstamp();">Bitstamp</button>
+	</div>
+	<h3>Active Arbitrage Workers</h3>
 	<div id="arbitrageContainer">
 		
 	</div>

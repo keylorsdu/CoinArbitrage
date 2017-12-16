@@ -57,12 +57,13 @@
 
                 if(execType == 0) {
                     amount /= limit;
+                    amount *= 1-self.exchange.getTxFeePerc()/100;
                 } 
                 executions.push(new Exchanges.WantedExecution(pwd.pair,execType,amount,limit));
                 if(execType == 1) {
                     amount *= limit;
+                    amount *= 1-self.exchange.getTxFeePerc()/100;
                 }
-                amount *= 1-self.exchange.getTxFeePerc()/200;               
             }
             return executions;
         }
@@ -140,17 +141,23 @@
                     console.log("cooldown");
                     return;
                 }
-                self.cooldown= Date.now()+5000;
-                console.log(label+" got arbitrage backwards: "+backward+" with "+amountFacBack);
-                if(amountFacBack < self.minAmount) {
+                console.log(new Date().toISOString()+" "+label+" got arbitrage backwards: "+((backward-1)*100).toFixed(2)+"% max "+amountFacBack.toFixed(2)+"€");
+                if(amountFacBack/2 < self.minAmount) {
                     console.log("not enough volume");
                     return;
-                }   
-                executions= self.getExecutions(Math.min(amountFacBack,self.maxAmount),-1);
+                }  
+                if(!arbitrageActive) {
+                    console.debug("paused");
+                    return;
+                } 
+                self.cooldown= Date.now()+1000;
+                var element= $("<div>"+(new Date()).toISOString()+" "+label+" with potential for "+((backward-1)*100).toFixed(2)+"% ...</div>");
+                logDiv.append(element);
+                executions= self.getExecutions(Math.min(amountFacBack/2,self.maxAmount),-1);
                 exchange.executeOrderChain(executions,function(success,message) { 
                     //add log
-                    var element= $("<div>"+label+":"+(success?"SUCCESS":"PROBLEM")+" doing train: "+message+"</div>");
-                    logDiv.append(element);    
+                    element.html("<div>"+(new Date()).toISOString()+" "+label+" with potential for "+((backward-1)*100).toFixed(2)+"% max "+amountFacBack.toFixed(2)+"€:"+(success?"SUCCESS!!":"PROBLEM:")+" "+message+"</div>");
+                        
                 });
                 gotOne= " got arbitrage: backward";
             }   
@@ -159,22 +166,36 @@
                     console.log("cooldown");
                     return;
                 }   
-                self.cooldown= Date.now()+5000;
-                console.log(label+" got arbitrage forwards: "+forward+" with "+amountFacForward);
-                if(amountFacForward < self.minAmount) {
+                console.log(new Date().toISOString()+" "+label+" got arbitrage forwards: "+((forward-1)*100).toFixed(2)+"% max "+amountFacForward.toFixed(2)+"€");
+                if(amountFacForward/2 < self.minAmount) {
                     console.log("not enough volume");
                     return;
                 } 
-                executions= self.getExecutions(Math.min(amountFacForward,self.maxAmount),1);
+                if(!arbitrageActive) {
+                    console.debug("paused");
+                    return;
+                }
+                self.cooldown= Date.now()+1000;
+                var element= $("<div>"+(new Date()).toISOString()+" "+label+" with potential for "+((forward-1)*100).toFixed(2)+"% ...</div>");
+                logDiv.append(element);
+                executions= self.getExecutions(Math.min(amountFacForward/2,self.maxAmount),1);
                 exchange.executeOrderChain(executions, function(success,message) { 
                     //add log
-                    var element= $("<div>"+label+":"+(success?"SUCCESS":"PROBLEM")+" doing train: "+message+"</div>");
-                    logDiv.append(element);    
+                    element.html("<div>"+(new Date()).toISOString()+" "+label+" with potential for "+((forward-1)*100).toFixed(2)+"% max "+amountFacForward.toFixed(2)+"€:"+(success?"SUCCESS!!":"PROBLEM:")+" "+message+"</div>");
                 });
                 gotOne= " got arbitrage: forward";               
             }            
 
-            self.statusDiv.html((arbitrageActive?"active:":"paused:")+" forward: "+forward.toFixed(4)+" backward:"+backward.toFixed(4)+gotOne);
+            var forwardLog= ((forward-1)*100).toFixed(2)+"%: "+amountFacForward.toFixed(2)+"€";
+            if(forward > 1) {
+                forwardLog= "<b>"+forwardLog+"</b>";
+            }
+            var backLog= +((backward-1)*100).toFixed(2)+"%: "+amountFacBack.toFixed(2)+"€";
+            if(backward > 1) {
+                backLog= "<b>"+backLog+"</b>";
+
+            }
+            self.statusDiv.html((arbitrageActive?"active:":"paused:")+" forward: "+forwardLog+" backward:"+backLog+" "+gotOne);
         };
     }
 

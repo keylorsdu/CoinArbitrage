@@ -47,19 +47,15 @@ var Exchanges= {};
                                 //close position
                                 var newPair,amount,type, limit;
                                 if(exec.type == 0) {
-                                    //wanted to buy
                                      newPair= exec.pair.substr(3,6)+"eur";
-                                     amount= exec.amount/exec.price;
-                                    type= "sell";
-                                    limit= self.exchange.orderBook[newPair].asks[0].price*0.99;
+                                     amount= exec.amount*exec.price;
                                 } else {
                                     newPair= exec.pair.substr(0,3)+"eur";
                                     amount= exec.amount;
-                                    type= "buy";
-                                    limit= self.exchange.orderBook[newPair].bids[0].price*1.01;
                                 }
+                                var limit= self.exchange.orderBook[newPair].asks[0].price*0.99;
                                 if(!doMarket) {
-                                    self.exchange.sendLimit(type,newPair,amount,limit,
+                                    self.exchange.sendLimit("sell",newPair,amount,limit,
                                         function() {callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position");},
                                         function(pendingOrder) {self.handleErrorInChain(pendingOrder,listOfExecutions,exec,callback,true);});
                                 } else {
@@ -80,6 +76,7 @@ var Exchanges= {};
 
         this.executeOrderChain= function(listOfExecutions,callback) {
             if(!self.lock()) {
+                callback(false,"Exchange already locked");
                  console.log("Exchange already locked");
                 return;
             }
@@ -96,7 +93,7 @@ var Exchanges= {};
                     function(pendingOrder) {self.handleErrorInChain(pendingOrder,remainingExecutions,exec,callback,false);}
                     );
             } else {
-                console.log("done arbitrage Train");
+                console.log(new Date().toISOString()+" done arbitrage Train");
                 callback(true,"");
             }
         };
@@ -107,7 +104,6 @@ var Exchanges= {};
 //also provides methodes to buy/sell
     function BitstampExchange() {
         this.executer= new ExchangeExecuter(this);
-        this.locked= false;
         this.pusher = new Pusher('de504dc5763aeef9ff52');
         this.orderBook= {};
         var self= this;
@@ -121,16 +117,6 @@ var Exchanges= {};
             shaObj.update(content);
             return shaObj.getHMAC("HEX").toUpperCase();
         };
-        this.lock= function() {
-            var result= !self.locked;
-            if(result) {
-                self.locked= true;
-            }
-            return result;
-        }
-        this.unlock= function() {
-            self.locked= false;
-        }
 
         this.callAPI= function(endpoint, callback, data) {
             var nonce= Date.now()*100+bitstampNonce%100;
@@ -153,17 +139,12 @@ var Exchanges= {};
 
         this.sendMarket= function(type,pair,amount,callback) {
             amount= Number(amount.toFixed(8)); //restrict to 8 decimals
-            if(pair.indexOf("eur") != -1) {
-                limit= Number(limit.toFixed(5)); //restrict to 5 decimals
-            } else {
-                limit= Number(limit.toFixed(8)); //restrict to 5 decimals
-            }
             if(!arbitrageActive) {
                 console.log("would "+type+" "+pair+" "+amount);
                 callback();
                 return;
             }      
-            console.log(Date.now() + " sending market order "+type+" "+amount+" in "+pair);
+            console.log((new Date()).toISOString() + " sending market order "+type+" "+amount+" in "+pair);
             self.callAPI("https://www.bitstamp.net/api/v2/"+type+"/market/"+pair+"/",function(data) {
                 if(data.status == "error") {
                     console.error("error with market:"+JSON.stringify(data.reason));
@@ -177,8 +158,8 @@ var Exchanges= {};
 
         this.sendLimit= function(type,pair,amount,limit,callbackIfDone,errorCallback) { 
            amount= Number(amount.toFixed(8)); //restrict to 8 decimals
-            if(pair.indexOf("eur") != -1) {
-                limit= Number(limit.toFixed(5)); //restrict to 5 decimals
+            if(pair.indexOf("eur") != -1 || pair.indexOf("usd") != -1) {
+                limit= Number(limit.toFixed(2)); //restrict to 5 decimals
             } else {
                 limit= Number(limit.toFixed(8)); //restrict to 5 decimals
             }
@@ -187,14 +168,14 @@ var Exchanges= {};
                 callbackIfDone();
                 return;
             }      
-            console.log(Date.now() + " sending limit order "+type+" "+amount+"@"+limit+" in "+pair);
+            console.log((new Date()).toISOString() + " sending limit order "+type+" "+amount+"@"+limit+" in "+pair);
             self.callAPI("https://www.bitstamp.net/api/v2/"+type+"/"+pair+"/",function(data) {
                 if(data.status == "error") {
                     console.error("erro with limit:"+JSON.stringify(data.reason));
                     alert("error in order!");
                     errorCallback(0);
                 } else {
-                    self.checkConfirmation(7,data.id,pair,callbackIfDone,errorCallback);
+                    self.checkConfirmation(4,data.id,pair,callbackIfDone,errorCallback);
                 }
               },
             {amount:amount, price:limit});
@@ -205,14 +186,14 @@ var Exchanges= {};
                 function(data) { 
                     if(data.status != "Finished") {
                         if(retries > 0) {
-                           console.warn(Date.now() + " order "+orderId +" in "+pair+" is still pending! retry");
-                           setTimeout(function(){self.checkConfirmation(retries-1,orderId,pair,callbackIfDone,errorCallback)},200*(8-retries)*(8-retries));
+                           console.warn((new Date()).toISOString() + " order "+orderId +" in "+pair+" is still pending! retry");
+                           setTimeout(function(){self.checkConfirmation(retries-1,orderId,pair,callbackIfDone,errorCallback)},100*(9-2*retries)*(5-retries));
                         } else {
-                            console.error(Date.now() + " order "+orderId+" in "+pair+" is still pending, cancelling");
+                            console.error((new Date()).toISOString() + " order "+orderId+" in "+pair+" is still pending, cancelling");
                             errorCallback(orderId);
                         }
                     } else {
-                        console.log("done order "+orderId+" in "+pair);
+                        console.log((new Date()).toISOString() + " done order "+orderId+" in "+pair);
                         callbackIfDone();
                     }
                 },
