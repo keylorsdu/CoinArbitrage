@@ -85,8 +85,9 @@ function initBitstamp() {
 	var container= $("#arbitrageContainer");
 	var logContainer= $("#logs");
 
-	var ex= new Exchanges.BitstampExchange();
 
+	var ex= new Exchanges.BitstampExchange();
+	
 	addThreeSomeBitstamp("eth",ex,container,logContainer);
 	addThreeSomeBitstamp("xrp",ex,container,logContainer);
 	addThreeSomeBitstamp("ltc",ex,container,logContainer);

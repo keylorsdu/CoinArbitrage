@@ -31,14 +31,15 @@ var Exchanges= {};
 
         var self= this;
 
-        this.handleErrorInChain= function(pendingOrder,listOfExecutions,exec,callback,doMarket) {
+        this.handleErrorInChain= function(pendingOrder,listOfExecutions,exec,callback,level) {
             //clean up
             console.warn("error in Train @ "+exec.pair+" pending Order: "+pendingOrder);
             if(pendingOrder > 0) {
                 self.exchange.cancelOrder(pendingOrder,
                     function(data) { 
-                        if(data.id != pendingOrder) { //error canceling -> continue executions
-                            self.executeOrderChainRecursive(listOfExecutions,callback)
+                        if(Number(data.id) != Number(pendingOrder)) { //error canceling -> continue executions
+                            console.log("couldnt cancel, moving on with executions");
+                            self.executeOrderChainRecursive(listOfExecutions,callback,0)
                         } else {
                             if(exec.pair.substr(3,6) == "eur" && exec.type == 0) {
                                 //wanted to buy for eur -> nothing to do
@@ -53,17 +54,22 @@ var Exchanges= {};
                                     newPair= exec.pair.substr(0,3)+"eur";
                                     amount= exec.amount;
                                 }
-                                var limit= self.exchange.orderBook[newPair].asks[0].price*0.99;
-                                if(!doMarket) {
-                                    self.exchange.sendLimit("sell",newPair,amount,limit,
-                                        function() {callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position");},
-                                        function(pendingOrder) {self.handleErrorInChain(pendingOrder,listOfExecutions,exec,callback,true);});
-                                } else {
-                                    self.exchange.sendMarket(type,newPair,amount,
-                                        function() {callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position market");}
-                                        );
-                                }                                            
-                                callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position");
+                                var book= self.exchange.orderBook[newPair];
+                                var limit= book.asks[0].price*0.99;
+                                if(level > 0) {
+                                     limit= (book.asks[0].price+book.bids[0],price)/2;
+                                }
+                                setTimeout( function() {
+                                    if(level <= 1) {
+                                        self.exchange.sendLimit("sell",newPair,amount,limit,
+                                            function() {callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position");},
+                                            function(pendingOrder) {self.handleErrorInChain(pendingOrder,listOfExecutions,exec,callback,level+1);});
+                                    } else {
+                                        self.exchange.sendMarket("sell",newPair,amount,
+                                            function() {callback(false,"There were "+(listOfExecutions.length+1)+" unsatisfied executions, closed position market");}
+                                            );
+                                    }       
+                                },(newPair == exec.pair?500:1));                                     
                             }
                         }
                     });
@@ -81,20 +87,20 @@ var Exchanges= {};
                 return;
             }
             self.executeOrderChainRecursive(listOfExecutions,
-                function(success,message) { callback(success,message); self.unlock();});
+                function(success,message) { callback(success,message); self.unlock();},1);
         };
         
-        this.executeOrderChainRecursive= function(remainingExecutions,callback) {
+        this.executeOrderChainRecursive= function(remainingExecutions,callback,cumQuote) {
             if(remainingExecutions.length > 0) {                
                 var exec= remainingExecutions[0];
                 remainingExecutions.shift();
                 self.exchange.sendLimit(exec.type==0?"buy":"sell",exec.pair,exec.amount,exec.price,
-                    function() {self.executeOrderChainRecursive(remainingExecutions,callback);},
-                    function(pendingOrder) {self.handleErrorInChain(pendingOrder,remainingExecutions,exec,callback,false);}
+                    function(avgPrice) {self.executeOrderChainRecursive(remainingExecutions,callback,cumQuote*(exec.type==0?1/avgPrice:avgPrice));},
+                    function(pendingOrder) {self.handleErrorInChain(pendingOrder,remainingExecutions,exec,callback,0);}
                     );
             } else {
                 console.log(new Date().toISOString()+" done arbitrage Train");
-                callback(true,"");
+                callback(true," got "+((cumQuote-1)*100).toFixed(2)+"%");
             }
         };
     }
@@ -165,7 +171,7 @@ var Exchanges= {};
             }
             if(!arbitrageActive) {
                 console.log("would "+type+" "+pair+" "+amount+" @ "+limit);
-                callbackIfDone();
+                callbackIfDone(limit);
                 return;
             }      
             console.log((new Date()).toISOString() + " sending limit order "+type+" "+amount+"@"+limit+" in "+pair);
@@ -193,12 +199,28 @@ var Exchanges= {};
                             errorCallback(orderId);
                         }
                     } else {
-                        console.log((new Date()).toISOString() + " done order "+orderId+" in "+pair);
-                        callbackIfDone();
+                        var avgPrice= 0;
+                        var amount= 0;
+                        data.transactions.forEach(function(tx) {
+                            var vol = Number(tx[pair.substr(0,3)]);
+                            avgPrice += Number(tx.price)*vol;
+                            amount+=vol
+                            });
+                        avgPrice /= amount;
+                        console.log((new Date()).toISOString() + " done order "+orderId+" in "+pair+" "+amount.toFixed(8)+"@"+avgPrice);
+                        callbackIfDone(avgPrice);
                     }
                 },
                 {id:orderId});
         };
+
+        this.getHistory= function() {
+
+            self.callAPI("https://www.bitstamp.net/api/v2/user_transactions/",
+                function(data) { 
+                    debugger;
+                },{});
+        }
 
         this.cancelOrder= function(orderId,callback) {
             self.callAPI("https://www.bitstamp.net/api/v2/cancel_order/",callback,

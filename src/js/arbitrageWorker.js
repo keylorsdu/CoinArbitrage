@@ -47,7 +47,7 @@
                     quote= self.orderBooks[pwd.pair].bids[0].price;
                 }
                 //floor
-                exp= Math.pow(10,Math.floor(Math.log10(quote*0.0001)));
+                exp= Math.pow(10,Math.floor(Math.log10(quote*0.001)))*3;
                 var limit= quote;
                 if(execType == 0) {
                     limit= Math.ceil(quote/exp)*exp;
